@@ -157,6 +157,7 @@ void O2CSP::Hook()
 	//g_winver = 10;
 	if (g_winver >= 10)
 	{
+		g_win10Offset = 0x10000;
 		f_scale = (float*)(0x5EED34 + g_win10Offset);
 	}
 	std::cout << "winver: " << g_winver << '\n';
