@@ -5,7 +5,6 @@
 #include <iostream>
 
 #include "mem.h"
-#include "winver.h"
 
 // TODO: Everything should be done using RAII approach, Initialize-Finalize is C style and is not recommended.
 
@@ -144,7 +143,6 @@ void ModifyScaleToFloat()
 
 void O2CSP::Hook()
 {
-	unsigned int g_win10Offset = 0;
 	// TODO: check for errors.
 	// https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandlea#return-value
 	if ((moduleBase = (uintptr_t)GetModuleHandle("OTwo.exe")) == 0)
@@ -153,7 +151,7 @@ void O2CSP::Hook()
 		return;
 	}
 
-	double g_winver = getSysOpType();
+	/**double g_winver = getSysOpType();
 	//g_winver = 10;
 	if (g_winver >= 10)
 	{
@@ -161,7 +159,7 @@ void O2CSP::Hook()
 		f_scale = (float*)(0x5EED34 + g_win10Offset);
 	}
 	std::cout << "winver: " << g_winver << '\n';
-	std::cout << "win10Offset: " << g_win10Offset << std::endl;
+	std::cout << "win10Offset: " << g_win10Offset << std::endl;**/
 
 	ModifyScaleToFloat();
 
