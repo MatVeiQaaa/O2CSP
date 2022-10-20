@@ -8,7 +8,9 @@
 #include "mem.h"
 
 // TODO: This should be a compiler define.
-#define DEBUG_CONSOLE_ENABLED
+//#define DEBUG_CONSOLE_ENABLED
+
+
 
 namespace
 {
@@ -30,6 +32,7 @@ namespace
 #endif
 
 		O2CSP::Hook();
+		std::cout << "O2CSP Injected" << std::endl;
 #ifdef DEBUG_CONSOLE_ENABLED
 		// Infinite loop? Please explain why we need this.
 		while (true)

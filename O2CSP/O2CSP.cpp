@@ -6,105 +6,140 @@
 
 #include "mem.h"
 
+#include "imgui/imgui.h"
+
 // TODO: Everything should be done using RAII approach, Initialize-Finalize is C style and is not recommended.
+
+uintptr_t moduleBase;
 
 float* f_scale = (float*)0x5EED34;
 
-void ImulEDXHook()
-{
-	int valueEDX = 0;
-	__asm {
-		MOV valueEDX,EDX
-		PUSH EAX
-	};
-	float f_result = *f_scale * valueEDX;
-	int i_result = static_cast<int>(f_result);
-	__asm {
-		MOV EDX,i_result
-		POP EAX
-	};
-	return;
-	/**std::cout <<
-		"Multiplier: " << *f_scale << "\n"
-		"EDX: " << valueEDX << "\n"
-		"Float result: " << f_result << "\n"
-		"Int result: " << i_result << std::endl;**/
+float* speedMods[10] = {
+(float*)0x47F656,
+(float*)(0x47F656 + 9),
+(float*)(0x47F656 + 9 * 2),
+(float*)(0x47F656 + 9 * 3),
+(float*)(0x47F656 + 9 * 4),
+(float*)(0x47F656 + 9 * 5),
+(float*)(0x47F656 + 9 * 6),
+(float*)(0x47F656 + 9 * 7),
+(float*)(0x47F656 + 9 * 8),
+(float*)(0x47F656 + 9 * 9)
+};
+
+int* cspValue = (int*)(0x4CE462);
+
+float* f_scale_first;
+
+bool imguiInit = 0;
+
+extern "C" {
+	__declspec(dllexport) void Imgui(ImGuiContext* context, ImGuiMemAllocFunc memAlloc, ImGuiMemFreeFunc memFree, void* userData)
+	{
+		if (!imguiInit)
+		{
+			ImGui::SetCurrentContext(context);
+			ImGui::SetAllocatorFunctions(memAlloc, memFree, userData);
+			imguiInit = 1;
+		}
+
+		if (ImGui::CollapsingHeader("O2CSP"))
+		{
+
+			if (ImGui::TreeNode("Speed Modifiers"))
+			{
+				if (*speedMods[0] > 200)
+					ImGui::InputInt("CSP", cspValue, 1, 50);
+				else
+					ImGui::InputFloat("X1.0", speedMods[0], 0.01f, 0.25f, "%.2f");
+				ImGui::InputFloat("X1.5", speedMods[1], 0.01f, 0.25f, "%.2f");
+				ImGui::InputFloat("X2.0", speedMods[2], 0.01f, 0.25f, "%.2f");
+				ImGui::InputFloat("X2.5", speedMods[3], 0.01f, 0.25f, "%.2f");
+				ImGui::InputFloat("X3.0", speedMods[4], 0.01f, 0.25f, "%.2f");
+				ImGui::InputFloat("X3.5", speedMods[5], 0.01f, 0.25f, "%.2f");
+				ImGui::InputFloat("X4.0", speedMods[6], 0.01f, 0.25f, "%.2f");
+				ImGui::InputFloat("X4.5", speedMods[7], 0.01f, 0.25f, "%.2f");
+				ImGui::InputFloat("X5.0", speedMods[8], 0.01f, 0.25f, "%.2f");
+				ImGui::InputFloat("X6.0", speedMods[9], 0.01f, 0.25f, "%.2f");
+
+				ImGui::TreePop;
+			}
+			if (ImGui::Button("Get address for scale"))
+			{
+				f_scale_first = (float*)mem::FindDMAAddy((moduleBase + 0x1C888C), { 0x3C, 0x10, 0x620, 0x10 });
+			}
+			
+			if (f_scale_first)
+			{
+				ImGui::InputFloat("Speed modifier * 2", f_scale_first, 0.01f, 0.25f, "%.2f");
+			}
+		}
+	}
 }
 
-void ImulECXHook()
+__declspec(naked) void ImulEDXHook()
 {
-	int valueECX = 0;
 	__asm {
-		MOV valueECX, ECX
 		PUSH EAX
-	};
-	float f_result = *f_scale * valueECX;
-	int i_result = static_cast<int>(f_result);
-	__asm {
-		MOV ECX, i_result
+		PUSH EDX
+		MOV EAX,f_scale
+		FLD [EAX]
+		FIMUL [ESP]
+		FISTP [ESP]
+		MOV EDX,[ESP]
+		ADD ESP,4
 		POP EAX
+		RET
 	};
-	return;
-	/**std::cout <<
-		"Multiplier: " << *f_scale << "\n"
-		"ECX: " << valueECX << "\n"
-		"Float result: " << f_result << "\n"
-		"Int result: " << i_result << std::endl;**/
 }
 
-void ImulEBPHook()
+__declspec(naked) void ImulECXHook()
 {
-	int valueEBP = 0;
 	__asm {
 		PUSH EAX
 		PUSH ECX
-		MOV ECX,[EBP]
-		MOV valueEBP,ECX
-	};
-	float f_result = *f_scale * valueEBP;
-	int i_result = static_cast<int>(f_result);
-	__asm {
-		MOV ECX, i_result
-		MOV [EBP],ECX
-		POP ECX
+		MOV EAX,f_scale
+		FLD [EAX]
+		FIMUL [ESP]
+		FISTP [ESP]
+		MOV ECX,[ESP]
+		ADD ESP,4
 		POP EAX
-		SUB EAX,[EBP]
+		RET
 	};
-	return;
-	/**std::cout <<
-		"Multiplier: " << *f_scale << "\n"
-		"EDX: " << valueEDX << "\n"
-		"Float result: " << f_result << "\n"
-		"Int result: " << i_result << std::endl;**/
 }
 
-void ImulEBPHook2()
+__declspec(naked) void ImulEBPHook()
 {
-	int valueEBP = 0;
 	__asm {
 		PUSH EAX
-		PUSH ECX
-		MOV ECX, [EBP]
-		MOV valueEBP, ECX
-	};
-	float f_result = *f_scale * valueEBP;
-	int i_result = static_cast<int>(f_result);
-	__asm {
-		MOV ECX, i_result
-		MOV[EBP], ECX
-		POP ECX
+		PUSH EBP
+		MOV EAX,f_scale
+		FLD [EAX]
+		FIMUL [ESP]
+		FISTP [ESP]
+		POP EBP
 		POP EAX
-		SUB ECX, [EBP]
+		SUB EAX,EBP
+		RET
 	};
-	return;
-	/**std::cout <<
-		"Multiplier: " << *f_scale << "\n"
-		"EDX: " << valueEDX << "\n"
-		"Float result: " << f_result << "\n"
-		"Int result: " << i_result << std::endl;**/
 }
 
-uintptr_t moduleBase;
+__declspec(naked) void ImulEBPHook2()
+{
+	__asm {
+		PUSH EAX
+		PUSH EBP
+		MOV EAX,f_scale
+		FLD [EAX]
+		FIMUL [ESP]
+		FISTP [ESP]
+		POP EBP
+		POP EAX
+		SUB ECX,EBP
+		RET
+	};
+}
 
 void ModifyScaleToFloat()
 {
@@ -150,6 +185,20 @@ void O2CSP::Hook()
 		std::cout << "No OTwo.exe process found" << std::endl;
 		return;
 	}
+
+	DWORD curProtection = 0;
+	DWORD temp = 0;
+	BOOL hResult = VirtualProtect((void*)(moduleBase + 0x07F656), 55, PAGE_EXECUTE_READWRITE, &curProtection);
+	if (hResult == NULL)
+	{
+		std::cout << "couldn't set permission on overwrite destination" << std::endl;
+	}
+	
+	hResult = VirtualProtect((void*)(moduleBase + 0x0D111C), 4, PAGE_EXECUTE_READWRITE, &curProtection);
+	float* noteSpawnY = (float*)(moduleBase + 0x0D111C);
+	*noteSpawnY = 10000;
+	hResult = VirtualProtect((void*)(moduleBase + 0x0D111C), 4, curProtection, &temp);
+	hResult = VirtualProtect((void*)(moduleBase + 0x0CE462), 4, PAGE_EXECUTE_READWRITE, &curProtection);
 
 	/**double g_winver = getSysOpType();
 	//g_winver = 10;
